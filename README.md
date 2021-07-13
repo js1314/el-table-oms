@@ -308,3 +308,7 @@ export function changeStatusUser(params) {
 ## v1.0.6
 
 1. Update `Examples`
+
+## v1.0.8
+
+1. Build
