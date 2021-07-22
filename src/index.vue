@@ -207,7 +207,15 @@
 							</div>
 						</el-tooltip>
 						<!--自定义组件-->
-						<component v-else-if="column.component" :is="column.component" :key="index" :admin="admin" :dicts="dicts" :row="row" />
+						<component
+							v-else-if="column.component"
+							:is="column.component"
+							v-bind="column.componentProps"
+							:key="index"
+							:admin="admin"
+							:dicts="dicts"
+							:row="row"
+						/>
 						<!--其它-->
 						<template v-else>
 							<span v-if="column.formatter" v-html="column.formatter(row, column, row[column.prop], index)"></span>

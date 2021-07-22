@@ -5,6 +5,7 @@ element-ui Table for Oms Project~
 # Examples
 
 ## index.vue
+
 <pre>
 &lt;template>
 	&lt;el-table-oms
@@ -71,13 +72,17 @@ export default {
 				show: true
 			},
 			buttons: [this.changeStatusButton],
-			control: {},
+			control: {
+				show: true
+			},
 			columns: [
 				{ prop: 'id', title: '用户id' },
 				{ prop: 'userName', title: '账号' },
-				{ prop: 'cellphone', title: '手机号' },
+				//格式化列值
+				{ prop: 'cellphone', title: '手机号', formatter: (row, column, value) => value },
 				{ prop: 'realName', title: '姓名', editable: true },
-				{ prop: 'roleName', title: '角色' },
+				//点击此单元格跳转到指定组件
+				{ prop: 'roleName', title: '角色', link: true, component: () => import('./components/editor.vue')  },
 				//dict为true，将status翻译成中文。使用dictProp:'myStatus'自定义字典名
 				{ prop: 'status', title: '状态', dict: true },
 				{ prop: 'lastLoginDate', title: '最近登录时间' }
@@ -112,6 +117,7 @@ export default {
 </pre>
 
 ## components/editor.vue
+
 <pre>
 &lt;template>
 	&lt;el-form ref="form" :model="user" :rules="rules" label-width="120px">
@@ -204,6 +210,7 @@ export default {
 </pre>
 
 ## components/search.vue
+
 <pre>
 &lt;template>
 	&lt;el-form :model="query" label-width="100px" inline>
@@ -302,7 +309,7 @@ export function changeStatusUser(params) {
 
 ## v1.0.5
 
-1. Fix `handleToolbar` remove `this.selectedRows` params
+1. Fix `handleToolbar` remove `this.selectedRows` param
 2. Add `Examples`
 
 ## v1.0.6
@@ -312,3 +319,8 @@ export function changeStatusUser(params) {
 ## v1.0.8
 
 1. Build
+
+
+## v1.0.9
+
+1. Add `columns.componentProps` param, custom `column.component` Component Props
