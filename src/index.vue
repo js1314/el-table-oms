@@ -195,7 +195,7 @@
 							<span v-else>-</span>
 						</template>
 						<!--二维码-->
-						<el-link v-else-if="column.qrcode" type="primary" @click="showQRCode(row, column)">点击查看</el-link>
+						<el-link v-else-if="column.qrcode" type="primary" @click="showQRCode(row)">点击查看</el-link>
 						<!--链接或编辑-->
 						<el-tooltip v-else-if="column.link || column.editable" :content="column.link ? '点击查看详情' : '双击修改该值'">
 							<div :class="{ 'el-table-oms__link': !!column.link }">
@@ -455,7 +455,7 @@ export default {
 		},
 		tab: {
 			type: String,
-			default: 'ALL'
+			default: 'all'
 		},
 		dict: {
 			type: [Object, Function],
@@ -561,30 +561,28 @@ export default {
 				} else if (Array.isArray(promise)) {
 					resolve(promise)
 				} else if (Object.isPromise(promise)) {
-					promise.then((data) => resolve(Object.replace(defaults[key](), data))).catch(resolve)
+					promise.then((data) => resolve(Object.replace(defaults[key](), data))).catch(() => resolve({}))
 				} else {
 					resolve({})
 				}
 			})
 		},
 		redirect(editor, row) {
-			if (!editor.prop && editor.show == null) {
-				editor.handle(row || this.row, this)
-				return false
-			}
+			if (!editor.prop && editor.show == null) return editor.handle(row || this.row, this), false
 			let path = editor.redirect
 			let redirect = this.$route.path
-			if (!path || path == redirect) {
-				return true
-			}
+			if (!path || path == redirect) return true
 			let vKey = this.primaryKey
 			let key = editor.queryKey || vKey
 			let query = row ? { [key]: row[vKey], redirect } : { redirect }
 			this.$router.push({ path, query })
 			return false
 		},
-		showQRCode(row, column) {
-			this.imageViewer = [this._createQRCode(row, column)]
+		showQRCode(row) {
+			this.showViwer(this._createQRCode(row))
+		},
+		showViwer(v) {
+			this.imageViewer = [].concat(v)
 		},
 		hideViwer() {
 			this.imageViewer = null
@@ -672,9 +670,7 @@ export default {
 		},
 		handleSelect(query = {}, action = 'select') {
 			let handle = this.search.handle
-			if (!handle) {
-				return null
-			}
+			if (!handle) return null
 			this.cache = {}
 			this.loading = true
 			let { pageNumName, pageSizeName, pageNum, pageSize } = this.page
@@ -684,9 +680,7 @@ export default {
 		},
 		handleSearch(query = {}, keepPage = false, keepSize = false, fromAside = false) {
 			let handle = this.search.handle
-			if (!handle || this.loading) {
-				return null
-			}
+			if (!handle || this.loading) return null
 			this.cache = {}
 			this.loading = true
 			let { pageNumName, pageSizeName, pageNum, pageSize } = this.page
@@ -699,20 +693,18 @@ export default {
 				this.handleSearch({}, false, true)
 			} else {
 				this.handleSearch(
-					{
-						[this.page.sortByName]: column.sortBy || prop,
-						[this.page.sortTypeName]: order === 'descending' ? 'desc' : 'asc'
-					},
+					{ [this.page.sortByName]: column.sortBy || prop, [this.page.sortTypeName]: order === 'descending' ? 'desc' : 'asc' },
 					false,
 					true
 				)
 			}
 		},
 		handleButton(button, row) {
-			let { title, confirm, prompt, cancel } = button
+			let { title, confirm, prompt, cancel, image, qrcode } = button
 			this.row = row || {}
 			this.button = button
 			if (confirm) {
+				//确认框
 				this.$confirm('是否' + title + '？', '提示', {
 					confirmButtonText: '是',
 					cancelButtonText: '否',
@@ -722,6 +714,7 @@ export default {
 					.then(this._handleButton)
 					.catch(cancel)
 			} else if (prompt) {
+				//对话框
 				this.$prompt(button.message, button.title, {
 					confirmButtonText: '确定',
 					cancelButtonText: '取消',
@@ -735,6 +728,12 @@ export default {
 					this.row = { [this.primaryKey]: row[this.primaryKey], [button.prop]: value }
 					this._handleButton()
 				})
+			} else if (image) {
+				//查看网络图片
+				this._handleButton(({ data }) => this.showViwer(data))
+			} else if (qrcode) {
+				//查看二维码
+				this.showQRCode(row)
 			} else {
 				this._handleButton()
 			}
@@ -758,19 +757,18 @@ export default {
 			this.$emit('selection-change', { rows, ids, table })
 		},
 		handleRowClick(row, column) {
-			if (!this.rowClick || this.rowClick(row, this)) {
-				let admin = this
-				let table = this.$refs.table
-				if (this.expand.show && this.expand.toggle) {
-					table.toggleRowExpansion(row)
-				} else if (this.multiple) {
-					table.toggleRowSelection(row)
-				} else if (this.selectable) {
-					table.setCurrentRow(row)
-				}
-				this.setCurrentRow(row)
-				this.$emit('row-click', { row, column, table, admin })
+			if (this.rowClick && !this.rowClick(row, this)) return
+			let admin = this
+			let table = this.$refs.table
+			if (this.expand.show && this.expand.toggle) {
+				table.toggleRowExpansion(row)
+			} else if (this.multiple) {
+				table.toggleRowSelection(row)
+			} else if (this.selectable) {
+				table.setCurrentRow(row)
 			}
+			this.setCurrentRow(row)
+			this.$emit('row-click', { row, column, table, admin })
 		},
 		toggleRowSelection(row) {
 			this.$refs.table.toggleRowSelection(row || this.currentRow)
@@ -807,20 +805,19 @@ export default {
 			this.$emit('cell-click', { row, column, cell })
 		},
 		handleSpanMethod({ row, column, rowIndex, columnIndex }) {
-			if (!this.loading) {
-				let { prop, props, uniq } = this.rowspan
-				if (prop && props && props.includes(column.property) && row[prop] > 1) {
-					let id = column.id + '-' + row[uniq || prop]
-					if (this.cache[id] == 1) {
-						//这里在一次数据更新时只执行一次
-						this.cache[id]++
-						return { rowspan: 0, colspan: 0 }
-					}
-					this.cache[id] = 1
-					return {
-						rowspan: row[prop],
-						colspan: 1
-					}
+			if (this.loading) return
+			let { prop, props, uniq } = this.rowspan
+			if (prop && props && props.includes(column.property) && row[prop] > 1) {
+				let id = column.id + '-' + row[uniq || prop]
+				if (this.cache[id] == 1) {
+					//这里在一次数据更新时只执行一次
+					this.cache[id]++
+					return { rowspan: 0, colspan: 0 }
+				}
+				this.cache[id] = 1
+				return {
+					rowspan: row[prop],
+					colspan: 1
 				}
 			}
 		},
@@ -974,29 +971,31 @@ export default {
 					.catch(() => (this.submitting = false))
 			}
 		},
-		_handleButton() {
-			let { handle, component, action } = this.button
+		_handleButton(resolve, reject) {
+			let { handle, component, action, renew } = this.button
 			//如果没有组件且有处理方法，则认为是button的click事件
 			if (!component && Function.isFunction(handle)) {
-				this._promiseSwitch(handle(this.row, this), action, this.button)
+				this._promiseSwitch(handle(this.row, this), action, this.button, resolve, reject)
 			} else if (this.redirect(this.button, this.row)) {
-				let { renew } = this.button
 				this.editor = {
 					...this.button,
 					show: true,
 					loaded: false,
 					component: null
 				}
-				let resolve = () => {
+				let loaded = () => {
 					this.editor.loaded = true
 					this.editor.component = component
+					resolve && resolve()
 				}
 				if (!renew) {
-					resolve()
+					loaded()
 				} else if (Function.isFunction(renew)) {
-					this._promiseRead(renew(this.row, this), this.row, 'detail', this.button, resolve)
+					this._promiseRead(renew(this.row, this), this.row, 'detail', this.button, loaded, reject)
 				} else {
-					this.handleRead('detail', this.row).then(resolve)
+					this.handleRead('detail', this.row)
+						.then(loaded)
+						.catch(reject)
 				}
 			}
 		},
@@ -1016,8 +1015,8 @@ export default {
 		_promiseRead(promise, query, action, options, resolve, reject) {
 			promise
 				.then((data) => {
-					this._thenRead(query, data, action, options)
-					resolve && resolve(data)
+					let res = this._thenRead(query, data, action, options)
+					resolve && resolve(res)
 				})
 				.catch((error) => {
 					this._catchRead(query, error, action, options)
@@ -1028,8 +1027,8 @@ export default {
 		_promiseWrite(promise, action, options, resolve, reject) {
 			promise
 				.then((data) => {
-					this._thenWrite(data, action, options)
-					resolve && resolve(data)
+					let res = this._thenWrite(data, action, options)
+					resolve && resolve(res)
 				})
 				.catch((error) => {
 					this._catchWrite(error, action, options)
@@ -1040,7 +1039,8 @@ export default {
 		_thenRead(query, _data, action, options) {
 			let isDetail = action.includes('detail')
 			isDetail || this._setQuery(query)
-			let { data, code, msg } = this.transform(_data, isDetail)
+			let res = this.transform(_data, isDetail)
+			let { data, code, msg } = res
 			this.errorCode = code
 			this.errorMsg = msg
 			if (code === 0) {
@@ -1066,6 +1066,7 @@ export default {
 				this.loading = false
 				this._initHeight()
 			})
+			return res
 		},
 		_catchRead(query, error, action, options) {
 			if (action.includes('detail')) {
@@ -1092,7 +1093,8 @@ export default {
 		_thenWrite(data, action, options) {
 			this.submitting = false
 			this.loading = false
-			const { code, msg } = this.transform(data, false)
+			let res = this.transform(data, false)
+			const { code, msg } = res
 			this.errorCode = 0
 			this.errorMsg = msg
 			if (code === 0) {
@@ -1114,6 +1116,7 @@ export default {
 				})
 			}
 			this._initHeight()
+			return res
 		},
 		_catchWrite(error, action, options) {
 			this.submitting = false
@@ -1128,11 +1131,9 @@ export default {
 				})
 			this._initHeight()
 		},
-		_createQRCode(row, column) {
+		_createQRCode(row) {
 			let { show, url, params } = this.qrcode
-			if (!show) {
-				return null
-			}
+			if (!show) return null
 			let qrCode = new QRCode(null, this.qrcode)
 			let qrText = url + (url.includes('?') ? '' : '?') + params.map((key) => key + '=' + encodeURIComponent(row[key])).join('&')
 			console.log('_createQRCode:' + qrText)
@@ -1151,17 +1152,11 @@ export default {
 			}
 		},
 		_initHeight() {
-			if (this.height === 'auto') {
-				return
-			}
-			let table = this.$refs.table,
-				page
-			if (!table) {
-				return setTimeout(this._initHeight, 16)
-			}
-			if (table.$el && this.hasPage && !(page = this.$refs.pagination)) {
-				return setTimeout(this._initHeight, 16)
-			}
+			if (this.height === 'auto') return
+			let page,
+				table = this.$refs.table
+			if (!table) return setTimeout(this._initHeight, 16)
+			if (table.$el && this.hasPage && !(page = this.$refs.pagination)) return setTimeout(this._initHeight, 16)
 			clearTimeout(this.heightTimer[0])
 			this.heightTimer[0] = setTimeout(() => {
 				//减去距离下边的基础下边距:16px
@@ -1173,17 +1168,11 @@ export default {
 			}, 100)
 		},
 		_initAsideHeight() {
-			if (this.height === 'auto') {
-				return
-			}
-			let table = this.$refs.table,
-				page
-			if (!table) {
-				return setTimeout(this._initAsideHeight, 16)
-			}
-			if (table.$el && this.hasAsidePage && !(page = this.$refs.asidePagination)) {
-				return setTimeout(this._initAsideHeight, 16)
-			}
+			if (this.height === 'auto') return
+			let page,
+				table = this.$refs.table
+			if (!table) return setTimeout(this._initAsideHeight, 16)
+			if (table.$el && this.hasAsidePage && !(page = this.$refs.asidePagination)) return setTimeout(this._initAsideHeight, 16)
 			clearTimeout(this.heightTimer[1])
 			this.heightTimer[1] = setTimeout(() => {
 				//减去距离下边的基础下边距:16px

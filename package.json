@@ -1,6 +1,6 @@
 {
 	"name": "el-table-oms",
-	"version": "1.0.9",
+	"version": "1.1.0",
 	"description": "element-ui Table for Oms Project~",
 	"main": "dist/el-table-oms.umd.js",
 	"scripts": {
