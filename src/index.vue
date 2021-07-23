@@ -299,7 +299,7 @@
 				@cancel="handleCancel"
 			/>
 		</el-dialog>
-		<el-image-viewer v-if="imageViewer" :url-list="imageViewer" :z-index="3000" :on-close="hideViwer" />
+		<el-image-viewer v-if="imageViewer" :url-list="imageViewer" :z-index="3000" :on-close="hideViewer" />
 	</el-container>
 	<!--添加或编辑的视图-->
 	<div v-else v-show="editor.show" v-loading.lock="loading" ref="table" class="el-table-oms el-table-oms__scroll" :style="tableHeightStyle">
@@ -542,9 +542,7 @@ export default {
 		}
 	},
 	methods: {
-		/**
-		 * 获取异步prop
-		 */
+		//异步prop
 		prop(key, row) {
 			return new Promise((resolve) => {
 				let promise
@@ -579,12 +577,12 @@ export default {
 			return false
 		},
 		showQRCode(row) {
-			this.showViwer(this._createQRCode(row))
+			this.showViewer(this._createQRCode(row))
 		},
-		showViwer(v) {
+		showViewer(v) {
 			this.imageViewer = [].concat(v)
 		},
-		hideViwer() {
+		hideViewer() {
 			this.imageViewer = null
 		},
 		hideEditor() {
@@ -730,7 +728,7 @@ export default {
 				})
 			} else if (image) {
 				//查看网络图片
-				this._handleButton(({ data }) => this.showViwer(data))
+				this._handleButton(({ data }) => this.showViewer(data))
 			} else if (qrcode) {
 				//查看二维码
 				this.showQRCode(row)

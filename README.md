@@ -322,9 +322,14 @@ export function changeStatusUser(params) {
 
 ## v1.0.9
 
-1. Add `columns.componentProps` param, custom `column.component` Component Props
+1. Add `columns.componentProps` param: custom `column.component` Component Props
 
 ## v1.1.0
 
-1. Add `button.image` param, display api result for image list
-2. Add `button.qrcode` param, display qrcode
+1. Add `button.image` param: display api result for image list
+2. Add `button.qrcode` param: display qrcode
+
+## v1.1.1
+
+1. Fix `button.qrcode` bug: display error
+2. Build
