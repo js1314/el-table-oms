@@ -168,7 +168,7 @@
 					:sort-by="column.sortBy || null"
 				>
 					<template slot-scope="{ row }">
-						<!--图片-->
+						<!--查看图片-->
 						<el-tooltip v-if="column.image" content="点击查看原图">
 							<el-image
 								v-if="row[column.prop]"
@@ -179,9 +179,9 @@
 							></el-image>
 							<span v-else>-</span>
 						</el-tooltip>
-						<!--媒体-->
+						<!--查看图片或视频-->
 						<template v-else-if="column.media">
-							<template v-if="row[column.prop]">
+							<template v-if="row[column.prop] != null">
 								<el-tooltip v-if="['gif', 'jpg', 'png'].includes(row[column.prop].split('.').end())" content="点击查看原图">
 									<el-image
 										class="el-table-oms__media"
@@ -194,18 +194,22 @@
 							</template>
 							<span v-else>-</span>
 						</template>
-						<!--二维码-->
+						<!--查看二维码-->
 						<el-link v-else-if="column.qrcode" type="primary" @click="showQRCode(row)">点击查看</el-link>
-						<!--链接或编辑-->
-						<el-tooltip v-else-if="column.link || column.editable" :content="column.link ? '点击查看详情' : '双击修改该值'">
-							<div :class="{ 'el-table-oms__link': !!column.link }">
-								<span v-if="column.formatter" v-html="column.formatter(row, column, row[column.prop], index)"></span>
-								<span v-else-if="row[column.prop] === null">-</span>
-								<!--字典翻译-->
-								<span v-else-if="column.dict">{{ dicts[column.dictProp || column.prop][row[column.prop]] }}</span>
-								<span v-else>{{ row[column.prop] }}</span>
-							</div>
-						</el-tooltip>
+						<!--链接查看详情-->
+						<template v-else-if="column.link">
+							<el-tooltip v-if="row[column.prop] != null" content="点击查看详情">
+								<el-link type="primary">
+									<!--格式化-->
+									<span v-if="column.formatter" v-html="column.formatter(row, column, row[column.prop], index)"></span>
+									<!--字典翻译-->
+									<span v-else-if="column.dict">{{ dicts[column.dictProp || column.prop][row[column.prop]] }}</span>
+									<!--正常-->
+									<span v-else>{{ row[column.prop] }}</span>
+								</el-link>
+							</el-tooltip>
+							<span v-else>-</span>
+						</template>
 						<!--自定义组件-->
 						<component
 							v-else-if="column.component"
@@ -216,12 +220,26 @@
 							:dicts="dicts"
 							:row="row"
 						/>
-						<!--其它-->
-						<template v-else>
+						<!--双击修改-->
+						<el-tooltip v-else-if="column.editable" content="双击修改该值">
+							<!--格式化-->
 							<span v-if="column.formatter" v-html="column.formatter(row, column, row[column.prop], index)"></span>
-							<span v-else-if="row[column.prop] === null">-</span>
+							<!--null-->
+							<span v-else-if="row[column.prop] == null">-</span>
 							<!--字典翻译-->
 							<span v-else-if="column.dict">{{ dicts[column.dictProp || column.prop][row[column.prop]] }}</span>
+							<!--正常-->
+							<span v-else>{{ row[column.prop] }}</span>
+						</el-tooltip>
+						<!--其它-->
+						<template v-else>
+							<!--格式化-->
+							<span v-if="column.formatter" v-html="column.formatter(row, column, row[column.prop], index)"></span>
+							<!--null-->
+							<span v-else-if="row[column.prop] == null">-</span>
+							<!--字典翻译-->
+							<span v-else-if="column.dict">{{ dicts[column.dictProp || column.prop][row[column.prop]] }}</span>
+							<!--正常-->
 							<span v-else>{{ row[column.prop] }}</span>
 						</template>
 					</template>
@@ -698,21 +716,26 @@ export default {
 			}
 		},
 		handleButton(button, row) {
-			let { title, confirm, prompt, cancel, image, qrcode } = button
+			let { title, confirm, prompt, image, qrcode, resolve, reject } = button
 			this.row = row || {}
 			this.button = button
+			//确认框
 			if (confirm) {
-				//确认框
 				this.$confirm('是否' + title + '？', '提示', {
 					confirmButtonText: '是',
 					cancelButtonText: '否',
 					type: 'warning',
 					center: true
 				})
-					.then(this._handleButton)
-					.catch(cancel)
-			} else if (prompt) {
-				//对话框
+					.then(() =>
+						this._handleButton()
+							.then(resolve)
+							.catch(reject)
+					)
+					.catch(reject)
+			}
+			//对话框
+			else if (prompt) {
 				this.$prompt(button.message, button.title, {
 					confirmButtonText: '确定',
 					cancelButtonText: '取消',
@@ -722,18 +745,33 @@ export default {
 					inputValidator: button.inputValidator,
 					inputPlaceholder: button.inputPlaceholder,
 					inputErrorMessage: button.inputErrorMessage || button.title + '不正确'
-				}).then(({ value }) => {
-					this.row = { [this.primaryKey]: row[this.primaryKey], [button.prop]: value }
-					this._handleButton()
 				})
-			} else if (image) {
-				//查看网络图片
-				this._handleButton(({ data }) => this.showViewer(data))
-			} else if (qrcode) {
-				//查看二维码
+					.then(({ value }) => {
+						this.row = { [this.primaryKey]: row[this.primaryKey], [button.prop]: value }
+						this._handleButton()
+							.then(resolve)
+							.catch(reject)
+					})
+					.catch(reject)
+			}
+			//查看二维码
+			else if (qrcode) {
 				this.showQRCode(row)
-			} else {
+			}
+			//查看图片
+			else if (image) {
 				this._handleButton()
+					.then(({ data }) => {
+						this.showViewer(data)
+						resolve && resolve()
+					})
+					.catch(reject)
+			}
+			//其它
+			else {
+				this._handleButton()
+					.then(resolve)
+					.catch(reject)
 			}
 		},
 		getCurrentRow() {
@@ -969,33 +1007,35 @@ export default {
 					.catch(() => (this.submitting = false))
 			}
 		},
-		_handleButton(resolve, reject) {
-			let { handle, component, action, renew } = this.button
-			//如果没有组件且有处理方法，则认为是button的click事件
-			if (!component && Function.isFunction(handle)) {
-				this._promiseSwitch(handle(this.row, this), action, this.button, resolve, reject)
-			} else if (this.redirect(this.button, this.row)) {
-				this.editor = {
-					...this.button,
-					show: true,
-					loaded: false,
-					component: null
+		_handleButton() {
+			return new Promise((resolve, reject) => {
+				let { handle, component, action, renew } = this.button
+				//如果没有组件且有处理方法，则认为是button的click事件
+				if (!component && Function.isFunction(handle)) {
+					this._promiseSwitch(handle(this.row, this), action, this.button, resolve, reject)
+				} else if (this.redirect(this.button, this.row)) {
+					this.editor = {
+						...this.button,
+						show: true,
+						loaded: false,
+						component: null
+					}
+					let loaded = () => {
+						this.editor.loaded = true
+						this.editor.component = component
+						resolve && resolve()
+					}
+					if (!renew) {
+						loaded()
+					} else if (Function.isFunction(renew)) {
+						this._promiseRead(renew(this.row, this), this.row, 'detail', this.button, loaded, reject)
+					} else {
+						this.handleRead('detail', this.row)
+							.then(loaded)
+							.catch(reject)
+					}
 				}
-				let loaded = () => {
-					this.editor.loaded = true
-					this.editor.component = component
-					resolve && resolve()
-				}
-				if (!renew) {
-					loaded()
-				} else if (Function.isFunction(renew)) {
-					this._promiseRead(renew(this.row, this), this.row, 'detail', this.button, loaded, reject)
-				} else {
-					this.handleRead('detail', this.row)
-						.then(loaded)
-						.catch(reject)
-				}
-			}
+			})
 		},
 		_promiseSwitch(promise, action, options, resolve, reject) {
 			if (!action || action.includes('insert') || action.includes('delete') || action.includes('update') || action.includes('write')) {
@@ -1400,17 +1440,6 @@ export default {
 			width: auto;
 			max-width: 200px;
 			max-height: 180px;
-		}
-	}
-	&__link {
-		cursor: pointer;
-		span {
-			text-decoration: underline;
-		}
-		&:hover {
-			span {
-				text-decoration: none;
-			}
 		}
 	}
 	&__aside {

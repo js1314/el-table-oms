@@ -333,3 +333,8 @@ export function changeStatusUser(params) {
 
 1. Fix `button.qrcode` bug: display error
 2. Build
+
+## v1.1.2
+
+1. Optimize `columns.link` param: Use el-link
+2. Build
