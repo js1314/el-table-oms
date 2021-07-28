@@ -338,3 +338,8 @@ export function changeStatusUser(params) {
 
 1. Optimize `columns.link` param: Use el-link
 2. Build
+
+## v1.1.3
+
+1. Remove style `scoped`
+2. Build

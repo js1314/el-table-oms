@@ -1333,20 +1333,6 @@ export default {
 </script>
 
 <style lang="scss">
-.el-dialog {
-	&__header {
-		padding: 16px !important;
-	}
-	&__body {
-		padding: 16px !important;
-		.el-table-oms {
-			padding: 0 !important;
-		}
-	}
-}
-</style>
-
-<style lang="scss" scoped>
 .el-table-oms {
 	&__table {
 		th.gutter {
@@ -1493,6 +1479,18 @@ export default {
 					margin-bottom: 0;
 				}
 			}
+		}
+	}
+}
+
+.el-dialog {
+	&__header {
+		padding: 16px !important;
+	}
+	&__body {
+		padding: 16px !important;
+		.el-table-oms {
+			padding: 0 !important;
 		}
 	}
 }
