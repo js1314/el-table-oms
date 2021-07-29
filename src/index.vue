@@ -717,7 +717,7 @@ export default {
 		},
 		handleButton(button, row) {
 			let { title, confirm, prompt, image, qrcode, resolve, reject } = button
-			this.row = row || {}
+			this.row = Object.assign(row || {}, button.row || {})
 			this.button = button
 			//确认框
 			if (confirm) {
@@ -1333,6 +1333,20 @@ export default {
 </script>
 
 <style lang="scss">
+.el-dialog {
+	&__header {
+		padding: 16px !important;
+	}
+	&__body {
+		padding: 16px !important;
+		.el-table-oms {
+			padding: 0 !important;
+		}
+	}
+}
+</style>
+
+<style lang="scss" scoped>
 .el-table-oms {
 	&__table {
 		th.gutter {
@@ -1479,18 +1493,6 @@ export default {
 					margin-bottom: 0;
 				}
 			}
-		}
-	}
-}
-
-.el-dialog {
-	&__header {
-		padding: 16px !important;
-	}
-	&__body {
-		padding: 16px !important;
-		.el-table-oms {
-			padding: 0 !important;
 		}
 	}
 }

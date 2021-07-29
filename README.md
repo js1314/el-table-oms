@@ -343,3 +343,8 @@ export function changeStatusUser(params) {
 
 1. Remove style `scoped`
 2. Build
+
+## v1.1.4
+
+1. Add style `scoped`
+2. Build
